@@ -6,8 +6,8 @@
 <title>Tableau des mesures</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; padding: 24px; color: #1a202c; }
-  .container { max-width: 1600px; margin: 0 auto; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; padding: 24px; color: #1a202c; }
+  .container { max-width: 1100px; margin: 0 auto; }
   h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; color: #2d3748; }
 
   .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; align-items: flex-start; }
@@ -51,11 +51,11 @@
   .multi-select-option input[type=checkbox] { accent-color: #667eea; width: 15px; height: 15px; cursor: pointer; }
 
   .reset-btn {
-    padding: 9px 16px; background: #93d6df; color: white; border: none;
+    padding: 9px 16px; background: #667eea; color: white; border: none;
     border-radius: 8px; font-size: 0.88rem; cursor: pointer; height: 38px;
     transition: background 0.2s;
   }
-  .reset-btn:hover { background: #93d6df; }
+  .reset-btn:hover { background: #5a67d8; }
 
   .info-bar { font-size: 0.82rem; color: #718096; margin-bottom: 10px; }
 
@@ -103,14 +103,19 @@
     display: inline-block; padding: 3px 9px; border-radius: 20px;
     font-size: 0.75rem; font-weight: 600; white-space: nowrap; margin: 2px 2px 2px 0;
   }
-  .badge-plan  { background: #bee3f8; color: #2a69ac; }
-  .badge-inter { background: #c6f6d5; color: #276749; }
-  .badge-appui { background: #fefcbf; color: #744210; }
-  .badge-hab   { background: #fed7e2; color: #97266d; }
-  .badge-dest  { background: #e9d8fd; color: #553c9a; }
-  .badge-mob   { background: #feebc8; color: #7b341e; }
+  /* Catégories */
+  .badge-hab   { background: #fff4c2; color: #7a5f00; }
+  .badge-dest  { background: #ffe8b0; color: #7a4500; }
+  .badge-mob   { background: #d4f2e7; color: #1a6b4a; }
+
+  /* Types — harmonisés avec les teintes chaudes/froides des catégories */
+  .badge-plan  { background: #dff0fd; color: #1a5276; }
+  .badge-inter { background: #d4f2e7; color: #1a6b4a; }
+  .badge-appui { background: #fff4c2; color: #7a5f00; }
+
+  /* Paliers — neutres */
   .badge-mun   { background: #e2e8f0; color: #4a5568; }
-  .badge-mrc   { background: #d6bcfa; color: #553c9a; }
+  .badge-mrc   { background: #cce8e2; color: #1a5248; }
 
   .no-results { text-align: center; padding: 32px; color: #a0aec0; }
 
@@ -192,6 +197,7 @@
 </head>
 <body>
 <div class="container">
+  <h2>📋 Mesures pour des milieux de vie de qualité</h2>
   <div class="controls">
     <input class="search-box" id="search" type="text" placeholder="🔍 Rechercher dans les mesures…">
 
