@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau des mesures</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; padding: 24px; color: #1a202c; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; color: #2d3748; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .search-box {
+    flex: 1; min-width: 220px; padding: 9px 14px;
+    border: 1.5px solid #cbd5e0; border-radius: 8px;
+    font-size: 0.88rem; outline: none; transition: border 0.2s;
+  }
+  .search-box:focus { border-color: #667eea; }
+  select {
+    padding: 9px 14px; border: 1.5px solid #cbd5e0;
+    border-radius: 8px; font-size: 0.88rem; background: white;
+    outline: none; cursor: pointer; transition: border 0.2s;
+  }
+  select:focus { border-color: #667eea; }
+  .reset-btn {
+    padding: 9px 16px; background: #667eea; color: white;
+    border: none; border-radius: 8px; font-size: 0.88rem;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .reset-btn:hover { background: #5a67d8; }
+
+  .info-bar { font-size: 0.82rem; color: #718096; margin-bottom: 10px; }
+
+  .table-wrapper {
+    background: white; border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  thead { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+  th {
+    padding: 12px 14px; text-align: left;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  th:hover { background: rgba(255,255,255,0.15); }
+  th .sort-icon { margin-left: 5px; opacity: 0.6; font-size: 0.72rem; }
+  th.asc .sort-icon::after { content: '▲'; }
+  th.desc .sort-icon::after { content: '▼'; }
+  th:not(.asc):not(.desc) .sort-icon::after { content: '⇅'; }
+
+  tbody tr { border-bottom: 1px solid #edf2f7; transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f7f8ff; }
+  td { padding: 11px 14px; vertical-align: top; }
+  td.mesure-cell { max-width: 420px; line-height: 1.45; }
+
+  .badge {
+    display: inline-block; padding: 3px 9px;
+    border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    white-space: nowrap; margin: 2px 2px 2px 0;
+  }
+  /* Types */
+  .badge-plan { background: #bee3f8; color: #2a69ac; }
+  .badge-inter { background: #c6f6d5; color: #276749; }
+  .badge-appui { background: #fefcbf; color: #744210; }
+
+  /* Catégories */
+  .badge-hab { background: #fed7e2; color: #97266d; }
+  .badge-dest { background: #e9d8fd; color: #553c9a; }
+  .badge-mob { background: #feebc8; color: #7b341e; }
+
+  /* Paliers */
+  .badge-mun { background: #e2e8f0; color: #4a5568; }
+  .badge-mrc { background: #d6bcfa; color: #553c9a; }
+
+  .no-results { text-align: center; padding: 32px; color: #a0aec0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>📋 Mesures pour des milieux de vie de qualité</h2>
+  <div class="controls">
+    <input class="search-box" id="search" type="text" placeholder="🔍 Rechercher dans les mesures…">
+    <select id="filter-type">
+      <option value="">Tous les types</option>
+      <option>Planification et réglementation</option>
+      <option>Interventions directes</option>
+      <option>Appui d'initiatives</option>
+    </select>
+    <select id="filter-cat">
+      <option value="">Toutes les catégories</option>
+      <option>Habitation</option>
+      <option>Destinations</option>
+      <option>Mobilité</option>
+    </select>
+    <select id="filter-palier">
+      <option value="">Tous les paliers</option>
+      <option>Municipalité</option>
+      <option>MRC</option>
+    </select>
+    <button class="reset-btn" onclick="reset()">Réinitialiser</button>
+  </div>
+  <div class="info-bar" id="info-bar"></div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Mesure <span class="sort-icon"></span></th>
+          <th onclick="sortTable(1)">Type <span class="sort-icon"></span></th>
+          <th onclick="sortTable(2)">Catégorie <span class="sort-icon"></span></th>
+          <th onclick="sortTable(3)">Palier <span class="sort-icon"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="no-results" id="no-results" style="display:none">Aucun résultat trouvé.</div>
+  </div>
+</div>
+
+<script>
+const raw = [
+  ["Réaliser un portrait du parc de logements (en analysant notamment la diversité de taille, le mode d'occupation, l'offre de logements à but non lucratif, et le taux d'inoccupation) pour identifier, dans les documents de planification, les secteurs où l'offre doit être améliorée en priorité.","Planification et réglementation","Habitation","Municipalité, MRC"],
+  ["Se doter d'une politique d'habitation avec des objectifs et des cibles pour diversifier l'offre de logements (en matière de taille notamment) et augmenter l'abordabilité (offre générale et de logements à but non lucratifs).","Planification et réglementation","Habitation","Municipalité, MRC"],
+  ["Se doter d'outils réglementaires permettant de diversifier l'offre de logements (p. ex. règlement pour améliorer l'offre de logements abordables, sociaux ou familiaux, zonage différencié, zonage incitatif).","Planification et réglementation","Habitation","Municipalité"],
+  ["Utiliser la maîtrise foncière et d'ouvrage via des appels à projets pour les terrains publics municipaux incluant des critères et obligations destinés à augmenter l'offre, la diversité et l'abordabilité.","Interventions directes","Habitation","Municipalité, MRC"],
+  ["Soutenir les projets d'habitation à but non lucratif qui contribuent à la diversité de l'offre résidentielle (p. ex. subvention financière, exemption ou crédit de taxes).","Appui d'initiatives","Habitation","Municipalité, MRC"],
+  ["Se doter d'outils réglementaires visant à conserver le parc de logements locatifs en encadrant notamment la transformation des immeubles locatifs en copropriétés divises, et location touristique.","Planification et réglementation","Habitation","Municipalité"],
+  ["Se doter d'un service d'aide à la recherche de logement (SARL) pour accompagner les ménages.","Interventions directes","Habitation","Municipalité"],
+  ["Adopter un programme d'aide visant à favoriser la construction ou l'aménagement de logements locatifs.","Appui d'initiatives","Habitation","Municipalité, MRC"],
+  ["Modifier la réglementation d'urbanisme de manière à favoriser la densification et la consolidation (p. ex. ajout d'unités d'habitation accessoires, autorisation de formes plus denses, réduction des marges des tailles minimales des lots, et des exigences de stationnement).","Planification et réglementation","Habitation","Municipalité"],
+  ["Augmenter la densité permise dans les milieux de vie considérés comme complets ou ayant un fort potentiel de le devenir, particulièrement ceux situés au sein ou à proximité des centralités et le long des axes structurants de transport en commun.","Planification et réglementation","Mobilité, Habitation","Municipalité, MRC"],
+  ["Faire l'acquisition (p. ex. grâce au droit de préemption) de terrains propices au redéveloppement et stratégiquement localisés (p. ex. friche industrielle, bâtiments vacants sur une rue commerciale).","Planification et réglementation","Habitation","Municipalité"],
+  ["Planifier la mise à niveau des réseaux d'aqueduc et d'égout pour répondre aux besoins de l'ajout de nouveaux logements.","Interventions directes","Habitation","Municipalité"],
+  ["Mettre en place une taxation supplémentaire des terrains sous-développés (p. ex. grands espaces de stationnement et terrains vacants) dans les centralités et à proximité.","Planification et réglementation","Habitation, Destinations","Municipalité"],
+  ["Identifier les terrains et immeubles vacants ou sous-utilisés (publics ou privés) présentant un potentiel d'être transformés pour accueillir des logements.","Planification et réglementation","Habitation","Municipalité"],
+  ["Se doter d'outils réglementaires permettant d'augmenter l'offre de logements à but non lucratifs (p. ex. réglementation sur l'inclusion de logements abordables, zonage différencié, zonage incitatif).","Planification et réglementation","Habitation","Municipalité"],
+  ["Soutenir l'émergence de formules innovantes d'habitation (p. ex. autopromotion, cohabitat, coopérative de solidarité).","Planification et réglementation","Habitation","Municipalité, MRC"],
+  ["Soutenir les initiatives communautaires répondant aux besoins de base de la population (p. ex. en alimentation, éducation, socialisation) par du financement ou un soutien logistique.","Appui d'initiatives","Destinations","Municipalité, MRC"],
+  ["Soutenir l'implantation et le maintien de destinations du quotidien (p. ex. commerce alimentaire, service de soin, tiers-lieu, CPE) dans les centralités.","Appui d'initiatives","Destinations","Municipalité"],
+  ["Réaliser un portrait des destinations locales et identifier, dans les documents de planification, les secteurs où l'offre doit être bonifiée (commerces alimentaires, services de garde, établissements scolaires, espaces naturels, équipements de culture et de loisirs, ressources en santé).","Planification et réglementation","Destinations","Municipalité, MRC"],
+  ["Modifier la réglementation d'urbanisme de manière à limiter les déserts alimentaires (p. ex. autoriser les commerces alimentaires de petite superficie dans les zones résidentielles, limiter la superficie des commerces alimentaires, limiter l'implantation des établissements de restauration rapide).","Planification et réglementation","Destinations","Municipalité"],
+  ["Faciliter l'agriculture urbaine en l'autorisant dans la réglementation, en offrant des espaces pour des jardins communautaires ou collectifs ou en intégrant des plantes comestibles dans les aménagements publics.","Planification et réglementation","Destinations","Municipalité"],
+  ["Se doter d'une politique d'accessibilité universelle, accompagné d'un programme pour soutenir l'adaptation des lieux et des bâtiments accueillant du public.","Appui d'initiatives","Destinations, Mobilité","Municipalité, MRC"],
+  ["Se doter d'une politique alimentaire et identifier des actions prioritaires pour améliorer l'offre alimentaire de proximité.","Planification et réglementation","Destinations","Municipalité"],
+  ["Planifier une répartition équitable des équipements et services publics et parapublics (écoles, services de garde, parcs et équipements culturels) sur le territoire.","Planification et réglementation","Destinations","Municipalité, MRC"],
+  ["Privilégier l'implantation des destinations du quotidien et des générateurs de déplacements dans les centralités, ainsi qu'à proximité des services publics et du transport en commun.","Planification et réglementation","Destinations, Mobilité","Municipalité, MRC"],
+  ["Planifier et prioriser les interventions pour sécuriser le réseau actif en fonction des risques et de la proximité de personnes en situation de vulnérabilité (p. ex. écoles, parcs, services de soins).","Interventions directes","Destinations, Mobilité","Municipalité"],
+  ["Autoriser certaines activités de proximité (p. ex. service de garde, clinique médicale, pharmacie) dans les zones résidentielles, ainsi qu'en tant qu'usage complémentaire pour les immeubles multilogements.","Planification et réglementation","Destinations","Municipalité"],
+  ["Planifier l'acquisition de terrains et la construction des écoles sur des emplacements au cœur des milieux de vie, particulièrement lors de la création ou de la consolidation d'un quartier.","Planification et réglementation","Destinations","Municipalité"],
+  ["Accorder une plus grande place à la végétation dans les milieux de vie (p. ex. augmentation de la canopée, intégration d'infrastructures naturelles, déminéralisation de terrains privés).","Interventions directes","Destinations","Municipalité"],
+  ["Réaliser des ententes de type «parc-école» et soutenir la déminéralisation et le verdissement des terrains scolaires.","Interventions directes","Destinations","Municipalité"],
+  ["Exiger une contribution pour fins de parc lors d'une demande de permis de lotissement ou de construction.","Planification et réglementation","Destinations","Municipalité"],
+  ["Aménager des accès publics balisés et bien identifiés aux principaux plans d'eau de la municipalité (p. ex. sentiers, plages).","Interventions directes","Destinations","Municipalité"],
+  ["Réaliser un portrait des espaces publics (ou accessibles au public) pour identifier les lacunes dans leur aménagement et en planifier le réaménagement pour en accroître la qualité, l'appropriabilité et l'inclusivité.","Planification et réglementation","Destinations, Mobilité","Municipalité"],
+  ["Assurer la présence d'installations sanitaires accessibles dans les lieux fréquentés par le public.","Interventions directes","Destinations","Municipalité"],
+  ["Autoriser et encourager la mixité d'activités dans les équipements publics (p. ex. une bibliothèque avec café, des salles partagées entre organismes) et le partage de locaux institutionnels.","Planification et réglementation","Destinations","Municipalité"],
+  ["Augmenter l'offre en espaces publics appropriables (p. ex. création de nouveaux espaces sur les terrains municipaux, remplacement de stationnement par des placettes, piétonnisation temporaire, saisonnière ou permanente).","Interventions directes","Destinations","Municipalité"],
+  ["Augmenter l'offre d'activités d'animation de l'espace public (p. ex. événements communautaires, activités culturelles, ventes de rue) en collaboration avec les organismes et les artistes du milieu.","Appui d'initiatives","Destinations","Municipalité"],
+  ["Améliorer la qualité de l'espace public sur les rues commerciales afin d'attirer des commerces et d'inciter les investissements privés (p. ex. végétation, mobilier, terrasses).","Planification et réglementation","Destinations, Mobilité","Municipalité"],
+  ["Renforcer les centralités en y concentrant les activités compatibles (habitations, commerces, bureaux et équipements publics), entre autres via des programmes incitatifs pour les nouvelles implantations.","Planification et réglementation","Destinations","Municipalité"],
+  ["Se doter d'un registre des locaux commerciaux qui inclut leur statut d'occupation afin de suivre et d'encourager leur occupation.","Interventions directes","Destinations","Municipalité, MRC"],
+  ["Optimiser la gestion du stationnement public (sur et hors rue) par la réglementation et la tarification, de manière à assurer un roulement favorable à la clientèle.","Interventions directes","Destinations","Municipalité"],
+  ["Réhabiliter les terrains contaminés dans les secteurs à consolider (p. ex. centre-ville, secteur propice à la consolidation).","Interventions directes","Habitation, Destinations","Municipalité"],
+  ["Réduire la vitesse autorisée à 30 km/h sur les voies locales.","Planification et réglementation","Mobilité","Municipalité"],
+  ["Planifier et aménager les réseaux cyclable et piétonnier en tenant compte du rôle des rues dans la trame (p. ex. déploiement prioritaire sur les voies structurantes, mesures de gestion de la circulation automobile).","Interventions directes","Mobilité","Municipalité"],
+  ["Assurer un entretien prioritaire des réseaux piétonnier et cyclable et des voies empruntées par le transport en commun, particulièrement en hiver.","Interventions directes","Mobilité","Municipalité, MRC"],
+  ["Se doter d'un plan de mobilité active ou d'un plan directeur des réseaux piétonnier et cyclable incluant un diagnostic et des mesures de bonification des réseaux.","Planification et réglementation","Mobilité","Municipalité, MRC"],
+  ["Aménager les intersections de manière à sécuriser la traversée des personnes qui se déplacent à pied ou à vélo (p. ex. trottoirs traversants, intersections protégées, feux avec phase piétonnière exclusive).","Interventions directes","Mobilité","Municipalité"],
+  ["Améliorer l'accessibilité universelle des bâtiments et des espaces publics, en assurant notamment des parcours continus, sans obstacles, sur des trottoirs larges et adaptés pour les personnes à mobilité réduite.","Interventions directes","Mobilité","Municipalité"],
+  ["Développer un guide de conception des rues pour assurer la cohérence des aménagements (piétonniers, cyclables et d'infrastructures vertes) selon les différents types de voies.","Planification et réglementation","Mobilité","Municipalité"],
+  ["Assurer la présence de trottoirs de bonne qualité et de largeur suffisante, particulièrement sur les voies structurantes en fonction de leur tracé et des destinations qu'elles desservent.","Interventions directes","Mobilité","Municipalité"],
+  ["Privilégier les pistes cyclables larges et séparées de la chaussée et des aménagements piétonniers pour plus de sécurité. Préférer les pistes unidirectionnelles.","Interventions directes","Mobilité","Municipalité"],
+  ["Augmenter l'offre de stationnement pour vélos dans les projets immobiliers, pour les commerces et sur l'espace public (conversion de cases de stationnement pour automobiles).","Planification et réglementation","Mobilité","Municipalité"],
+  ["Profiter de la réfection des rues pour réduire la largeur des chaussées et implanter des aménagements piétonniers et cyclables, ainsi que des infrastructures vertes.","Interventions directes","Mobilité","Municipalité"],
+  ["Offrir des informations directionnelles pour les destinations clés avec des indications de distance pour faciliter l'orientation des cyclistes et des piétons.","Interventions directes","Mobilité, Destinations","Municipalité"],
+  ["Réaliser un portrait de la mobilité pour identifier les forces et les lacunes en matière d'infrastructures et de services (réseaux de mobilité active et de transport en commun, conditions de sécurité, services de mobilité partagée).","Planification et réglementation","Mobilité","Municipalité, MRC"],
+  ["Se doter d'un plan de mobilité durable destiné à améliorer l'offre en matière de transport collectif et de mobilité partagée.","","Mobilité","Municipalité"],
+  ["Planifier des pôles d'échanges intermodaux dans les cœurs de collectivité ou près des concentrations d'activités et assurer une bonne interconnexion entre les différents réseaux de transport en commun.","Planification et réglementation","Mobilité","Municipalité, MRC"],
+  ["Réviser la réglementation en matière de stationnement (p. ex. abolition ou réduction des exigences, imposition de normes maximales à proximité du transport en commun).","Planification et réglementation","Mobilité, Habitation","Municipalité"],
+  ["Développer et soutenir une offre de transport collectif complémentaire ou palliative au transport en commun (p. ex. transport à la demande, transport interurbain, transport bénévole, navettes pour travailleurs, covoiturage).","Appui d'initiatives","Mobilité","Municipalité, MRC"],
+  ["Planifier le prolongement du réseau de transport en commun en priorisant la desserte des concentrations d'activités peu ou mal desservies.","Planification et réglementation","Mobilité","Municipalité, MRC"],
+  ["Mettre en place des mesures préférentielles pour les bus (p. ex. voies réservées, priorité aux feux de circulation, localisation des arrêts).","Interventions directes","Mobilité","Municipalité"],
+  ["Utiliser le stationnement comme levier pour stimuler le développement de l'autopartage (p. ex. exigence de cases dédiées dans des projets immobiliers majeurs).","Planification et réglementation","Mobilité","Municipalité"],
+  ["Soutenir les initiatives d'autopartage privées ou communautaires sur le territoire.","Interventions directes","Mobilité","Municipalité, MRC"],
+  ["Déployer un système de vélos en libre-service.","Interventions directes","Mobilité","Municipalité"],
+];
+
+let sortCol = -1, sortDir = 1;
+
+function typeBadge(t) {
+  if (!t) return '';
+  const cls = t.includes('Planification') ? 'badge-plan' : t.includes('Interventions') ? 'badge-inter' : 'badge-appui';
+  const label = t.includes('Planification') ? 'Planification & régl.' : t.includes('Interventions') ? 'Interventions directes' : 'Appui d\'initiatives';
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function catBadges(c) {
+  if (!c) return '';
+  return c.split(',').map(s => {
+    s = s.trim();
+    const cls = s === 'Habitation' ? 'badge-hab' : s === 'Destinations' ? 'badge-dest' : 'badge-mob';
+    return `<span class="badge ${cls}">${s}</span>`;
+  }).join(' ');
+}
+
+function palierBadges(p) {
+  if (!p) return '';
+  return p.split(',').map(s => {
+    s = s.trim();
+    const cls = s === 'MRC' ? 'badge-mrc' : 'badge-mun';
+    return `<span class="badge ${cls}">${s}</span>`;
+  }).join(' ');
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const fType = document.getElementById('filter-type').value;
+  const fCat = document.getElementById('filter-cat').value;
+  const fPalier = document.getElementById('filter-palier').value;
+
+  let rows = raw.filter(r => {
+    const textMatch = r[0].toLowerCase().includes(q) || r[1].toLowerCase().includes(q) || r[2].toLowerCase().includes(q);
+    const typeOk = !fType || r[1] === fType;
+    const catOk = !fCat || r[2].includes(fCat);
+    const palierOk = !fPalier || r[3].includes(fPalier);
+    return textMatch && typeOk && catOk && palierOk;
+  });
+
+  if (sortCol >= 0) {
+    rows.sort((a, b) => a[sortCol].localeCompare(b[sortCol], 'fr') * sortDir);
+  }
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = rows.map(r =>
+    `<tr>
+      <td class="mesure-cell">${r[0]}</td>
+      <td>${typeBadge(r[1])}</td>
+      <td>${catBadges(r[2])}</td>
+      <td>${palierBadges(r[3])}</td>
+    </tr>`
+  ).join('');
+
+  document.getElementById('no-results').style.display = rows.length ? 'none' : 'block';
+  document.getElementById('info-bar').textContent = `${rows.length} mesure(s) affichée(s) sur ${raw.length}`;
+}
+
+function sortTable(col) {
+  document.querySelectorAll('th').forEach((th, i) => th.classList.remove('asc','desc'));
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+  document.querySelectorAll('th')[col].classList.add(sortDir === 1 ? 'asc' : 'desc');
+  render();
+}
+
+function reset() {
+  document.getElementById('search').value = '';
+  document.getElementById('filter-type').value = '';
+  document.getElementById('filter-cat').value = '';
+  document.getElementById('filter-palier').value = '';
+  sortCol = -1; sortDir = 1;
+  document.querySelectorAll('th').forEach(th => th.classList.remove('asc','desc'));
+  render();
+}
+
+['search','filter-type','filter-cat','filter-palier'].forEach(id =>
+  document.getElementById(id).addEventListener('input', render)
+);
+render();
+</script>
+</body>
+</html>
