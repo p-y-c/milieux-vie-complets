@@ -128,7 +128,9 @@
   .page-btn.active { background: #93d6df; border-color: #93d6df; color: white; font-weight: 700; }
   .page-btn:disabled { opacity: 0.35; cursor: default; }
 
-  /* prevent text selection while resizing */
+  .badge-click { cursor: pointer; transition: opacity 0.15s, outline 0.15s; }
+  .badge-click:hover { opacity: 0.75; }
+  .badge-active { outline: 2px solid #333; outline-offset: 1px; }
   body.resizing { cursor: col-resize !important; user-select: none !important; }
 
   /* ── Mobile card layout ───────────────────────────────── */
@@ -331,7 +333,7 @@ function typeBadge(t) {
   const cls = t.includes('Planification') ? 'badge-plan' : t.includes('Interventions') ? 'badge-inter' : 'badge-appui';
   const label = t.includes('Planification') ? 'Planification & régl.' : t.includes('Interventions') ? 'Interventions directes' : "Appui d'initiatives";
   const active = document.getElementById('filter-type').value === t ? 'badge-active' : '';
-  return `<span class="badge ${cls} ${active} badge-click" onclick="toggleType('${t}')" title="Filtrer par ce type">${label}</span>`;
+  return `<span class="badge ${cls} ${active} badge-click" data-type="${t}" title="Filtrer par ce type">${label}</span>`;
 }
 function catBadges(c) {
   if (!c) return '';
@@ -339,7 +341,7 @@ function catBadges(c) {
     s = s.trim();
     const cls = s === 'Habitation' ? 'badge-hab' : s === 'Destinations' ? 'badge-dest' : 'badge-mob';
     const active = selCat.has(s) ? 'badge-active' : '';
-    return `<span class="badge ${cls} ${active} badge-click" onclick="toggleCat('${s}')" title="Filtrer par cette catégorie">${s}</span>`;
+    return `<span class="badge ${cls} ${active} badge-click" data-cat="${s}" title="Filtrer par cette catégorie">${s}</span>`;
   }).join(' ');
 }
 function palierBadges(p) {
@@ -347,7 +349,7 @@ function palierBadges(p) {
   return p.split(',').map(s => {
     s = s.trim();
     const active = selPalier.has(s) ? 'badge-active' : '';
-    return `<span class="badge ${s === 'MRC' ? 'badge-mrc' : 'badge-mun'} ${active} badge-click" onclick="togglePalier('${s}')" title="Filtrer par ce palier">${s}</span>`;
+    return `<span class="badge ${s === 'MRC' ? 'badge-mrc' : 'badge-mun'} ${active} badge-click" data-palier="${s}" title="Filtrer par ce palier">${s}</span>`;
   }).join(' ');
 }
 
@@ -487,6 +489,14 @@ function reset() {
   document.querySelectorAll('th').forEach(th => th.classList.remove('asc','desc'));
   render();
 }
+
+document.getElementById('tbody').addEventListener('click', e => {
+  const b = e.target.closest('.badge-click');
+  if (!b) return;
+  if (b.dataset.cat)    toggleCat(b.dataset.cat);
+  if (b.dataset.palier) togglePalier(b.dataset.palier);
+  if (b.dataset.type)   toggleType(b.dataset.type);
+});
 
 document.getElementById('search').addEventListener('input', () => { currentPage=1; render(); });
 document.getElementById('filter-type').addEventListener('change', () => { currentPage=1; render(); });
