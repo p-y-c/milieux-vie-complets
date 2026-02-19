@@ -330,22 +330,54 @@ function typeBadge(t) {
   if (!t) return '';
   const cls = t.includes('Planification') ? 'badge-plan' : t.includes('Interventions') ? 'badge-inter' : 'badge-appui';
   const label = t.includes('Planification') ? 'Planification & régl.' : t.includes('Interventions') ? 'Interventions directes' : "Appui d'initiatives";
-  return `<span class="badge ${cls}">${label}</span>`;
+  const active = document.getElementById('filter-type').value === t ? 'badge-active' : '';
+  return `<span class="badge ${cls} ${active} badge-click" onclick="toggleType('${t}')" title="Filtrer par ce type">${label}</span>`;
 }
 function catBadges(c) {
   if (!c) return '';
   return c.split(',').map(s => {
     s = s.trim();
     const cls = s === 'Habitation' ? 'badge-hab' : s === 'Destinations' ? 'badge-dest' : 'badge-mob';
-    return `<span class="badge ${cls}">${s}</span>`;
+    const active = selCat.has(s) ? 'badge-active' : '';
+    return `<span class="badge ${cls} ${active} badge-click" onclick="toggleCat('${s}')" title="Filtrer par cette catégorie">${s}</span>`;
   }).join(' ');
 }
 function palierBadges(p) {
   if (!p) return '';
   return p.split(',').map(s => {
     s = s.trim();
-    return `<span class="badge ${s === 'MRC' ? 'badge-mrc' : 'badge-mun'}">${s}</span>`;
+    const active = selPalier.has(s) ? 'badge-active' : '';
+    return `<span class="badge ${s === 'MRC' ? 'badge-mrc' : 'badge-mun'} ${active} badge-click" onclick="togglePalier('${s}')" title="Filtrer par ce palier">${s}</span>`;
   }).join(' ');
+}
+
+function toggleCat(val) {
+  if (selCat.has(val)) selCat.delete(val); else selCat.add(val);
+  // sync checkboxes
+  document.querySelectorAll('#ms-cat input[type=checkbox]').forEach(cb => cb.checked = selCat.has(cb.value));
+  syncMultiLabel('cat');
+  currentPage = 1; render();
+}
+function togglePalier(val) {
+  if (selPalier.has(val)) selPalier.delete(val); else selPalier.add(val);
+  document.querySelectorAll('#ms-palier input[type=checkbox]').forEach(cb => cb.checked = selPalier.has(cb.value));
+  syncMultiLabel('palier');
+  currentPage = 1; render();
+}
+function toggleType(val) {
+  const sel = document.getElementById('filter-type');
+  sel.value = sel.value === val ? '' : val;
+  currentPage = 1; render();
+}
+function syncMultiLabel(type) {
+  const set = type === 'cat' ? selCat : selPalier;
+  const msId = type === 'cat' ? 'ms-cat' : 'ms-palier';
+  const labelId = type === 'cat' ? 'ms-cat-label' : 'ms-palier-label';
+  const def = type === 'cat' ? 'Toutes les catégories' : 'Tous les paliers';
+  const btn = document.querySelector(`#${msId} .multi-select-btn`);
+  btn.querySelectorAll('.count').forEach(el => el.remove());
+  document.getElementById(labelId).textContent = set.size ? [...set].join(', ') : def;
+  if (set.size) { const b = document.createElement('span'); b.className='count'; b.textContent=set.size; btn.appendChild(b); }
 }
 
 // ── Dropdowns ─────────────────────────────────────────────
