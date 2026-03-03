@@ -108,12 +108,12 @@
   .badge-dest  { background: #fef2dc; color: #9c6e1a; }
   .badge-mob   { background: #ecf8f4; color: #548474; }
 
-  /* Types — harmonisés avec les teintes chaudes/froides des catégories */
+  /* Types */
   .badge-plan  { background: #dff0fd; color: #1a5276; }
   .badge-inter { background: #d4f2e7; color: #1a6b4a; }
   .badge-appui { background: #fff4c2; color: #7a5f00; }
 
-  /* Paliers — neutres */
+  /* Paliers */
   .badge-mun   { background: #e2e8f0; color: #4a5568; }
   .badge-mrc   { background: #cce8e2; color: #1a5248; }
 
@@ -129,7 +129,7 @@
     font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;
     justify-content: center; transition: all 0.15s; color: #4a5568;
   }
-  .page-btn:hover:not(:disabled) { border-color: #93d6df; color: white; background:#81b2b8;}
+  .page-btn:hover:not(:disabled) { border-color: #93d6df; color: white; background: #81b2b8; }
   .page-btn.active { background: #93d6df; border-color: #93d6df; color: white; font-weight: 700; }
   .page-btn:disabled { opacity: 0.35; cursor: default; }
 
@@ -141,55 +141,30 @@
   /* ── Mobile card layout ───────────────────────────────── */
   @container main (max-width: 768px) {
     body { padding: 14px; }
-
     .controls { flex-direction: column; }
     .search-box, .multi-select, .multi-select-btn,
     select.simple-select, .reset-btn { width: 100%; min-width: unset; }
     .multi-select-btn { min-width: unset; }
-
     .table-wrapper { border-radius: 8px; overflow: hidden; }
-
-    /* Hide table header on mobile */
     table thead { display: none; }
     table, tbody { display: block; width: 100%; }
-
-    /* Each row becomes a card */
     tbody tr {
-      display: block;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      margin: 8px 10px;
-      padding: 12px;
-      background: white;
+      display: block; border: 1px solid #e2e8f0; border-radius: 8px;
+      margin: 8px 10px; padding: 12px; background: white;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
     tbody tr:hover { background: #f0fafb; }
     tbody tr:last-child { border-bottom: 1px solid #e2e8f0; }
-
-    /* Hide all td by default, show as block */
     tbody td { display: block; padding: 0; border: none; overflow: visible; }
-
-    /* Badges row: cat + palier + type on one line, wrapping */
     tbody td:nth-child(1),
     tbody td:nth-child(2),
     tbody td:nth-child(3) { display: inline; }
-
-    /* Badges container trick: wrap the first 3 tds in a flex-like row */
     tbody td:nth-child(1)::before { content: ''; display: block; margin-bottom: 6px; }
     tbody td:nth-child(3)::after  { content: ''; display: block; margin-bottom: 8px; }
-
-    /* Mesure text */
     tbody td.mesure-cell {
-      display: block;
-      font-size: 0.87rem;
-      line-height: 1.5;
-      color: #2d3748;
-      border-top: 1px solid #edf2f7;
-      padding-top: 8px;
-      margin-top: 4px;
+      display: block; font-size: 0.87rem; line-height: 1.5; color: #2d3748;
+      border-top: 1px solid #edf2f7; padding-top: 8px; margin-top: 4px;
     }
-
-    /* Pagination adjustments */
     .pagination { gap: 4px; padding: 12px 8px; }
     .page-btn { min-width: 30px; height: 30px; font-size: 0.8rem; }
   }
@@ -257,7 +232,6 @@
 </div>
 
 <script>
-// [cat, palier, type, mesure]
 const raw = [
   ["Habitation","Municipalité, MRC","Planification et réglementation","Réaliser un portrait du parc de logements (en analysant notamment la diversité de taille, le mode d'occupation, l'offre de logements à but non lucratif, et le taux d'inoccupation) pour identifier, dans les documents de planification, les secteurs où l'offre doit être améliorée en priorité."],
   ["Habitation","Municipalité, MRC","Planification et réglementation","Se doter d'une politique d'habitation avec des objectifs et des cibles pour diversifier l'offre de logements (en matière de taille notamment) et augmenter l'abordabilité (offre générale et de logements à but non lucratifs)."],
@@ -331,7 +305,6 @@ let selCat = new Set(), selPalier = new Set();
 let currentPage = 1;
 let filteredRows = [];
 
-// ── Badge helpers ──────────────────────────────────────────
 function typeBadge(t) {
   if (!t) return '';
   const cls = t.includes('Planification') ? 'badge-plan' : t.includes('Interventions') ? 'badge-inter' : 'badge-appui';
@@ -359,7 +332,6 @@ function palierBadges(p) {
 
 function toggleCat(val) {
   if (selCat.has(val)) selCat.delete(val); else selCat.add(val);
-  // sync checkboxes
   document.querySelectorAll('#ms-cat input[type=checkbox]').forEach(cb => cb.checked = selCat.has(cb.value));
   syncMultiLabel('cat');
   currentPage = 1; render();
@@ -386,7 +358,6 @@ function syncMultiLabel(type) {
   if (set.size) { const b = document.createElement('span'); b.className='count'; b.textContent=set.size; btn.appendChild(b); }
 }
 
-// ── Dropdowns ─────────────────────────────────────────────
 function toggleDropdown(id) {
   const el = document.getElementById(id);
   const open = el.classList.contains('open');
@@ -411,11 +382,9 @@ function onCheck(type) {
   currentPage = 1; render();
 }
 
-// ── Render ─────────────────────────────────────────────────
 function render() {
   const q = document.getElementById('search').value.toLowerCase();
   const fType = document.getElementById('filter-type').value;
-
   filteredRows = raw.filter(r => {
     const textMatch = r.join(' ').toLowerCase().includes(q);
     const typeOk   = !fType || r[2] === fType;
@@ -423,17 +392,13 @@ function render() {
     const palierOk = selPalier.size === 0 || [...selPalier].some(p => r[1].includes(p));
     return textMatch && typeOk && catOk && palierOk;
   });
-
   if (sortCol >= 0)
     filteredRows.sort((a, b) => a[sortCol].localeCompare(b[sortCol], 'fr') * sortDir);
-
   const total = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   if (currentPage > totalPages) currentPage = totalPages;
-
   const start = (currentPage - 1) * PER_PAGE;
   const end   = Math.min(start + PER_PAGE, total);
-
   document.getElementById('tbody').innerHTML = filteredRows.slice(start, end).map(r =>
     `<tr>
       <td>${catBadges(r[0])}</td>
@@ -442,11 +407,9 @@ function render() {
       <td class="mesure-cell">${r[3]}</td>
     </tr>`
   ).join('');
-
   document.getElementById('no-results').style.display = total ? 'none' : 'block';
   document.getElementById('info-bar').textContent =
     `Affichage de ${total ? start+1 : 0}–${end} sur ${total} résultat(s) (${raw.length} mesures au total)`;
-
   renderPagination(totalPages);
 }
 
@@ -532,6 +495,8 @@ document.getElementById('filter-type').addEventListener('change', () => { curren
     dragging = false;
     document.querySelectorAll('.resize-handle').forEach(h => h.classList.remove('active'));
     document.body.classList.remove('resizing');
+    // Bloquer le clic qui suit immédiatement le mouseup de redimensionnement
+    document.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true });
   });
 })();
 
