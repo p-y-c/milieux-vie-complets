@@ -308,7 +308,7 @@ let filteredRows = [];
 function typeBadge(t) {
   if (!t) return '';
   const cls = t.includes('Planification') ? 'badge-plan' : t.includes('Interventions') ? 'badge-inter' : 'badge-appui';
-  const label = t.includes('Planification') ? 'Planification & régl.' : t.includes('Interventions') ? 'Interventions directes' : "Appui d'initiatives";
+  const label = t.includes('Planification') ? 'Planification & réglementation' : t.includes('Interventions') ? 'Interventions directes' : "Appui d'initiatives";
   const active = document.getElementById('filter-type').value === t ? 'badge-active' : '';
   return `<span class="badge ${cls} ${active} badge-click" data-type="${t}" title="Filtrer par ce type">${label}</span>`;
 }
