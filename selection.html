@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau des mesures</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; padding: 4px; color: #1a202c; }
+  .container { max-width: 1700px; margin: 0 auto; }
+  h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; color: #2d3748; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; align-items: flex-start; }
+  .search-box { 
+    flex: 1; min-width: 220px; padding: 9px 14px;
+    border: 1.5px solid #cbd5e0; border-radius: 8px;
+    font-size: 0.88rem; outline: none; transition: border 0.2s;
+  }
+  .search-box:focus { border-color: #93d6df;}
+  select.simple-select {
+    padding: 9px 14px; border: 1.5px solid #cbd5e0;
+    border-radius: 8px; font-size: 0.88rem; background: white;
+    outline: none; cursor: pointer; height: 38px;
+  }
+  select.simple-select:focus { border-color: #667eea; }
+
+  .multi-select { position: relative;}
+  .multi-select-btn {
+    padding: 9px 14px; border: 1.5px solid #cbd5e0; border-radius: 8px;
+    font-size: 0.88rem; background: white; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    min-width: 160px; height: 38px; transition: border 0.2s;
+  }
+  .multi-select-btn:hover, .multi-select.open .multi-select-btn { border-color: #667eea; }
+  .multi-select-btn .arrow { margin-left: auto; font-size: 0.7rem; color: #718096; }
+  .multi-select-btn .count {
+    background: #667eea; color: white; border-radius: 10px;
+    font-size: 0.72rem; padding: 1px 6px; font-weight: 700;
+  }
+  .multi-select-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0;
+    background: white; border: 1.5px solid #cbd5e0; border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 100; min-width: 200px;
+  }
+  .multi-select.open .multi-select-dropdown { display: block; }
+  .multi-select-option {
+    padding: 9px 14px; cursor: pointer; display: flex; align-items: center;
+    gap: 9px; font-size: 0.87rem; transition: background 0.1s;
+  }
+  .multi-select-option:hover { background: #f7f8ff; }
+  .multi-select-option input[type=checkbox] { accent-color: #667eea; width: 15px; height: 15px; cursor: pointer; }
+
+  .reset-btn {
+    padding: 9px 16px; background: #93d6df; color: white; border: none;
+    border-radius: 8px; font-size: 0.88rem; cursor: pointer; height: 38px;
+    transition: background 0.2s;
+  }
+  .reset-btn:hover { background: #81b2b8; }
+
+  .info-bar { font-size: 0.82rem; color: #718096; margin-bottom: 10px; }
+
+  .table-wrapper {
+    background: white; border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow-x: auto;
+  }
+
+  /* Container query support */
+  .container { container-type: inline-size; container-name: main; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
+  thead { background: #93d6df; color: white; }
+
+  th {
+    padding: 12px 14px; text-align: left; user-select: none;
+    white-space: nowrap; position: relative; overflow: hidden;
+  }
+  th.sortable { cursor: pointer; }
+  th.sortable:hover { background: rgba(0,0,0,0.08); }
+  th { color: #1a202c; }
+  th .sort-icon { margin-left: 5px; opacity: 0.6; font-size: 0.72rem; }
+  th.asc .sort-icon::after { content: '▲'; }
+  th.desc .sort-icon::after { content: '▼'; }
+  th:not(.asc):not(.desc) .sort-icon::after { content: '⇅'; }
+
+  /* Resize handle */
+  .resize-handle {
+    position: absolute; right: 0; top: 0; bottom: 0;
+    width: 6px; cursor: col-resize;
+    background: transparent;
+    transition: background 0.15s;
+    z-index: 1;
+  }
+  .resize-handle:hover, .resize-handle.active { background: rgba(255,255,255,0.4); }
+
+  tbody tr { border-bottom: 1px solid #edf2f7; transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f7f8ff; }
+  td { padding: 11px 14px; vertical-align: top; overflow: hidden; }
+  td.mesure-cell { line-height: 1.45; white-space: normal; word-break: break-word; }
+  td:not(.mesure-cell) { white-space: normal; }
+
+  .badge {
+    display: inline-block; padding: 3px 9px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 500; white-space: nowrap; margin: 2px 2px 2px 0; border:1px solid rgba(0, 0, 0, 0.3);
+  }
+  /* Catégories */
+  .badge-hab   { background: #ffcf004d; color: #000; }
+  .badge-dest  { background: #f0850066; color: #000; }
+  .badge-mob   { background: #79d3b766; color: #000; }
+
+  /* Types */
+  .badge-plan  { background: rgb(129 178 184/40%); color: #000; }
+  .badge-inter { background: rgb(129 178 184/25%); color: #000; }
+  .badge-appui { background: rgb(129 178 184/10%); color: #000; }
+
+  /* Paliers */
+  .badge-mun   { background: #eee; color: #000; }
+  .badge-mrc   { background: #eee; color: #000; }
+
+  .no-results { text-align: center; padding: 32px; color: #a0aec0; }
+
+  .pagination {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 16px; border-top: 1px solid #edf2f7; flex-wrap: wrap;
+  }
+  .page-btn {
+    min-width: 34px; height: 34px; padding: 0 10px;
+    border: 1.5px solid #cbd5e0; border-radius: 7px; background: white;
+    font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: all 0.15s; color: #4a5568;
+  }
+  .page-btn:hover:not(:disabled) { border-color: #93d6df; color: white; background: #81b2b8; }
+  .page-btn.active { background: #93d6df; border-color: #93d6df; color: white; font-weight: 700; }
+  .page-btn:disabled { opacity: 0.35; cursor: default; }
+
+  .badge-click { cursor: pointer; transition: opacity 0.15s, outline 0.15s; }
+  .badge-click:hover { opacity: 0.75; }
+  .badge-active { outline: 2px solid #333; outline-offset: 1px; }
+  body.resizing { cursor: col-resize !important; user-select: none !important; }
+
+  /* ── Mobile card layout ───────────────────────────────── */
+  @container main (max-width: 768px) {
+    body { padding: 14px; }
+    .controls { flex-direction: column; }
+    .search-box, .multi-select, .multi-select-btn,
+    select.simple-select, .reset-btn { width: 100%; min-width: unset; }
+    .multi-select-btn { min-width: unset; }
+    .table-wrapper { border-radius: 8px; overflow: hidden; }
+    table thead { display: none; }
+    table, tbody { display: block; width: 100%; }
+    tbody tr {
+      display: block; border: 1px solid #e2e8f0; border-radius: 8px;
+      margin: 8px 10px; padding: 12px; background: white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    tbody tr:hover { background: #f0fafb; }
+    tbody tr:last-child { border-bottom: 1px solid #e2e8f0; }
+    tbody td { display: block; padding: 0; border: none; overflow: visible; }
+    tbody td:nth-child(1),
+    tbody td:nth-child(2),
+    tbody td:nth-child(3) { display: inline; }
+    tbody td:nth-child(1)::before { content: ''; display: block; margin-bottom: 6px; }
+    tbody td:nth-child(3)::after  { content: ''; display: block; margin-bottom: 8px; }
+    tbody td.mesure-cell {
+      display: block; font-size: 0.87rem; line-height: 1.5; color: #2d3748;
+      border-top: 1px solid #edf2f7; padding-top: 8px; margin-top: 4px;
+    }
+    .pagination { gap: 4px; padding: 12px 8px; }
+    .page-btn { min-width: 30px; height: 30px; font-size: 0.8rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="controls">
+    <input class="search-box" id="search" type="text" placeholder="🔍 Rechercher dans les mesures…">
+
+    <div class="multi-select" id="ms-cat">
+      <div class="multi-select-btn" onclick="toggleDropdown('ms-cat')">
+        <span id="ms-cat-label">Toutes les catégories</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="multi-select-dropdown">
+        <label class="multi-select-option"><input type="checkbox" value="Habitation" onchange="onCheck('cat')"> Habitation</label>
+        <label class="multi-select-option"><input type="checkbox" value="Destinations" onchange="onCheck('cat')"> Destinations</label>
+        <label class="multi-select-option"><input type="checkbox" value="Mobilité" onchange="onCheck('cat')"> Mobilité</label>
+      </div>
+    </div>
+
+    <div class="multi-select" id="ms-palier">
+      <div class="multi-select-btn" onclick="toggleDropdown('ms-palier')">
+        <span id="ms-palier-label">Tous les paliers</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="multi-select-dropdown">
+        <label class="multi-select-option"><input type="checkbox" value="Municipalité" onchange="onCheck('palier')"> Municipalité</label>
+        <label class="multi-select-option"><input type="checkbox" value="MRC" onchange="onCheck('palier')"> MRC</label>
+      </div>
+    </div>
+
+    <select class="simple-select" id="filter-type">
+      <option value="">Tous les types</option>
+      <option>Planification et réglementation</option>
+      <option>Interventions directes</option>
+      <option>Appui d'initiatives</option>
+    </select>
+
+    <button class="reset-btn" onclick="reset()">Réinitialiser</button>
+  </div>
+  <div class="info-bar" id="info-bar"></div>
+  <div class="table-wrapper">
+    <table id="main-table">
+      <colgroup>
+        <col id="col-0" style="width:120px">
+        <col id="col-1" style="width:120px">
+        <col id="col-2" style="width:200px">
+        <col id="col-3">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="sortable" onclick="sortTable(0)">Catégorie <span class="sort-icon"></span><div class="resize-handle" data-col="0"></div></th>
+          <th class="sortable" onclick="sortTable(1)">Palier <span class="sort-icon"></span><div class="resize-handle" data-col="1"></div></th>
+          <th class="sortable" onclick="sortTable(2)">Type <span class="sort-icon"></span><div class="resize-handle" data-col="2"></div></th>
+          <th class="sortable" onclick="sortTable(3)">Mesure <span class="sort-icon"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="no-results" id="no-results" style="display:none">Aucun résultat trouvé.</div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<script>
+const raw = [
+  ["Habitation","Municipalité","Planification et réglementation","Se doter d'outils réglementaires permettant de diversifier l'offre de logements (p. ex. règlement pour améliorer l'offre de logements abordables, sociaux ou familiaux, zonage différencié, zonage incitatif)."],
+  ["Destinations, Mobilité","Municipalité","Interventions directes","Planifier et prioriser les interventions pour sécuriser le réseau actif en fonction des risques et de la proximité de personnes en situation de vulnérabilité (p. ex. écoles, parcs, services de soins)."],
+  ["Mobilité","Municipalité","Interventions directes","Assurer la présence de trottoirs de bonne qualité et de largeur suffisante, particulièrement sur les voies structurantes en fonction de leur tracé et des destinations qu'elles desservent."],
+  ["Habitation","Municipalité, MRC","Appui d'initiatives","Adopter un programme d'aide visant à favoriser la construction ou l'aménagement de logements locatifs."],
+  ["Mobilité","Municipalité","Interventions directes","Planifier et aménager les réseaux cyclable et piétonnier en tenant compte du rôle des rues dans la trame (p. ex. déploiement prioritaire sur les voies structurantes en fonction de leur tracé et des destinations qu'elles desservent, mesures de gestion de la circulation automobile pour limiter la circulation de transit, création de liens cyclopiétonniers permettant d'augmenter la perméabilité de la trame et de réduire les distances à parcourir)."],
+  ["Habitation","Municipalité","Interventions directes","Planifier la mise à niveau des réseaux d'aqueduc et d'égout pour répondre aux besoins de l'ajout de nouveaux logements."],
+  ["Destinations","Municipalité","Interventions directes","Augmenter l'offre en espaces publics appropriables (p. ex. création de nouveaux espaces sur les terrains municipaux, remplacement de stationnement par des placettes, piétonnisation temporaire, saisonnière ou permanente)."],
+  ["Habitation","Municipalité","Planification et réglementation","Se doter d'outils réglementaires permettant d'augmenter l'offre de logements à but non lucratifs (p. ex. réglementation sur l'inclusion de logements abordables, zonage différencié, zonage incitatif)."],
+  ["Destinations","Municipalité","Planification et réglementation","Se doter d'une politique alimentaire et identifier des actions prioritaires pour améliorer l'offre alimentaire de proximité."],
+  ["Mobilité, Habitation","Municipalité","Planification et réglementation","Réviser la réglementation en matière de stationnement (p. ex. abolition ou réduction des exigences, imposition de normes maximales à proximité du transport en commun, dérogation aux exigences en présence de transport en commun ou d'autopartage, mutualisation)."],
+  ["Destinations, Mobilité","Municipalité, MRC","Planification et réglementation","Privilégier l'implantation des destinations du quotidien et des générateurs de déplacements dans les centralités, ainsi qu'à proximité des services publics et du transport en commun."],
+  ["Mobilité, Habitation","Municipalité, MRC","Planification et réglementation","Augmenter la densité permise dans les milieux de vie considérés comme complets ou ayant un fort potentiel de le devenir, en priorisant la proximité des centralités et du transport en commun."],
+  ["Destinations","Municipalité","Interventions directes","Aménager des accès publics balisés et bien identifiés aux principaux plans d'eau de la municipalité (p. ex. sentiers, plages)."],
+  ["Destinations","Municipalité, MRC","Interventions directes","Se doter d'un registre des locaux commerciaux qui inclut leur statut d'occupation afin de suivre et d'encourager leur occupation."],
+  ["Destinations","Municipalité","Planification et réglementation","Modifier la réglementation d'urbanisme de manière à limiter les déserts alimentaires (p. ex. autoriser les commerces alimentaires de petite superficie dans les zones résidentielles, limiter la superficie des commerces alimentaires, limiter l'implantation des établissement de restauration rapide)."],
+  ["Mobilité","Municipalité","Planification et réglementation","Réduire la vitesse autorisée à 30 km/h sur les voies locales."],
+  ["Destinations","Municipalité","Interventions directes","Optimiser la gestion du stationnement public (sur et hors rue) par la réglementation et la tarification, de manière à assurer un roulement favorable à la clientèle."],
+  ["Mobilité","Municipalité","Planification et réglementation","Développer un guide de conception des rues pour assurer la cohérence des aménagements (piétonniers, cyclables et d'infrastructures vertes) selon les différents types de voies."],
+];
+
+const PER_PAGE = 20;
+let sortCol = -1, sortDir = 1;
+let selCat = new Set(), selPalier = new Set();
+let currentPage = 1;
+let filteredRows = [];
+
+function typeBadge(t) {
+  if (!t) return '';
+  const cls = t.includes('Planification') ? 'badge-plan' : t.includes('Interventions') ? 'badge-inter' : 'badge-appui';
+  const label = t.includes('Planification') ? 'Planification & réglementation' : t.includes('Interventions') ? 'Interventions directes' : "Appui d'initiatives";
+  const active = document.getElementById('filter-type').value === t ? 'badge-active' : '';
+  return `<span class="badge ${cls} ${active} badge-click" data-type="${t}" title="Filtrer par ce type">${label}</span>`;
+}
+function catBadges(c) {
+  if (!c) return '';
+  return c.split(',').map(s => {
+    s = s.trim();
+    const cls = s === 'Habitation' ? 'badge-hab' : s === 'Destinations' ? 'badge-dest' : 'badge-mob';
+    const active = selCat.has(s) ? 'badge-active' : '';
+    return `<span class="badge ${cls} ${active} badge-click" data-cat="${s}" title="Filtrer par cette catégorie">${s}</span>`;
+  }).join(' ');
+}
+function palierBadges(p) {
+  if (!p) return '';
+  return p.split(',').map(s => {
+    s = s.trim();
+    const active = selPalier.has(s) ? 'badge-active' : '';
+    return `<span class="badge ${s === 'MRC' ? 'badge-mrc' : 'badge-mun'} ${active} badge-click" data-palier="${s}" title="Filtrer par ce palier">${s}</span>`;
+  }).join(' ');
+}
+
+function toggleCat(val) {
+  if (selCat.has(val)) selCat.delete(val); else selCat.add(val);
+  document.querySelectorAll('#ms-cat input[type=checkbox]').forEach(cb => cb.checked = selCat.has(cb.value));
+  syncMultiLabel('cat');
+  currentPage = 1; render();
+}
+function togglePalier(val) {
+  if (selPalier.has(val)) selPalier.delete(val); else selPalier.add(val);
+  document.querySelectorAll('#ms-palier input[type=checkbox]').forEach(cb => cb.checked = selPalier.has(cb.value));
+  syncMultiLabel('palier');
+  currentPage = 1; render();
+}
+function toggleType(val) {
+  const sel = document.getElementById('filter-type');
+  sel.value = sel.value === val ? '' : val;
+  currentPage = 1; render();
+}
+function syncMultiLabel(type) {
+  const set = type === 'cat' ? selCat : selPalier;
+  const msId = type === 'cat' ? 'ms-cat' : 'ms-palier';
+  const labelId = type === 'cat' ? 'ms-cat-label' : 'ms-palier-label';
+  const def = type === 'cat' ? 'Toutes les catégories' : 'Tous les paliers';
+  const btn = document.querySelector(`#${msId} .multi-select-btn`);
+  btn.querySelectorAll('.count').forEach(el => el.remove());
+  document.getElementById(labelId).textContent = set.size ? [...set].join(', ') : def;
+  if (set.size) { const b = document.createElement('span'); b.className='count'; b.textContent=set.size; btn.appendChild(b); }
+}
+
+function toggleDropdown(id) {
+  const el = document.getElementById(id);
+  const open = el.classList.contains('open');
+  document.querySelectorAll('.multi-select.open').forEach(e => e.classList.remove('open'));
+  if (!open) el.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.multi-select'))
+    document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+});
+function onCheck(type) {
+  const set = type === 'cat' ? selCat : selPalier;
+  const msId = type === 'cat' ? 'ms-cat' : 'ms-palier';
+  const labelId = type === 'cat' ? 'ms-cat-label' : 'ms-palier-label';
+  const def = type === 'cat' ? 'Toutes les catégories' : 'Tous les paliers';
+  set.clear();
+  document.querySelectorAll(`#${msId} input:checked`).forEach(cb => set.add(cb.value));
+  const btn = document.querySelector(`#${msId} .multi-select-btn`);
+  btn.querySelectorAll('.count').forEach(el => el.remove());
+  document.getElementById(labelId).textContent = set.size ? [...set].join(', ') : def;
+  if (set.size) { const b = document.createElement('span'); b.className='count'; b.textContent=set.size; btn.appendChild(b); }
+  currentPage = 1; render();
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const fType = document.getElementById('filter-type').value;
+  filteredRows = raw.filter(r => {
+    const textMatch = r.join(' ').toLowerCase().includes(q);
+    const typeOk   = !fType || r[2] === fType;
+    const catOk    = selCat.size === 0    || [...selCat].some(c => r[0].includes(c));
+    const palierOk = selPalier.size === 0 || [...selPalier].some(p => r[1].includes(p));
+    return textMatch && typeOk && catOk && palierOk;
+  });
+  if (sortCol >= 0)
+    filteredRows.sort((a, b) => a[sortCol].localeCompare(b[sortCol], 'fr') * sortDir);
+  const total = filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * PER_PAGE;
+  const end   = Math.min(start + PER_PAGE, total);
+  document.getElementById('tbody').innerHTML = filteredRows.slice(start, end).map(r =>
+    `<tr>
+      <td>${catBadges(r[0])}</td>
+      <td>${palierBadges(r[1])}</td>
+      <td>${typeBadge(r[2])}</td>
+      <td class="mesure-cell">${r[3]}</td>
+    </tr>`
+  ).join('');
+  document.getElementById('no-results').style.display = total ? 'none' : 'block';
+  document.getElementById('info-bar').textContent =
+    `Affichage de ${total ? start+1 : 0}–${end} sur ${total} résultat(s) (${raw.length} mesures au total)`;
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  const pg = document.getElementById('pagination');
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+  let pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i===1 || i===totalPages || (i>=currentPage-2 && i<=currentPage+2)) pages.push(i);
+    else if (pages[pages.length-1] !== '…') pages.push('…');
+  }
+  pg.innerHTML =
+    `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹ Préc.</button>` +
+    pages.map(p => p==='…'
+      ? `<button class="page-btn" disabled>…</button>`
+      : `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`
+    ).join('') +
+    `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Suiv. ›</button>`;
+}
+
+function goPage(p) {
+  currentPage = p; render();
+  document.querySelector('.table-wrapper').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function sortTable(col) {
+  document.querySelectorAll('th').forEach(th => th.classList.remove('asc','desc'));
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+  document.querySelectorAll('th')[col].classList.add(sortDir===1?'asc':'desc');
+  currentPage = 1; render();
+}
+
+function reset() {
+  document.getElementById('search').value = '';
+  document.getElementById('filter-type').value = '';
+  selCat.clear(); selPalier.clear();
+  ['ms-cat','ms-palier'].forEach(id => {
+    document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = false);
+    document.querySelector(`#${id} .multi-select-btn .count`)?.remove();
+  });
+  document.getElementById('ms-cat-label').textContent = 'Toutes les catégories';
+  document.getElementById('ms-palier-label').textContent = 'Tous les paliers';
+  sortCol = -1; sortDir = 1; currentPage = 1;
+  document.querySelectorAll('th').forEach(th => th.classList.remove('asc','desc'));
+  render();
+}
+
+document.getElementById('tbody').addEventListener('click', e => {
+  const b = e.target.closest('.badge-click');
+  if (!b) return;
+  if (b.dataset.cat)    toggleCat(b.dataset.cat);
+  if (b.dataset.palier) togglePalier(b.dataset.palier);
+  if (b.dataset.type)   toggleType(b.dataset.type);
+});
+
+document.getElementById('search').addEventListener('input', () => { currentPage=1; render(); });
+document.getElementById('filter-type').addEventListener('change', () => { currentPage=1; render(); });
+
+// ── Column resize ──────────────────────────────────────────
+(function() {
+  let dragging = false, colIdx = null, startX = 0, startW = 0;
+
+  document.querySelectorAll('.resize-handle').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      colIdx  = +handle.dataset.col;
+      startX  = e.clientX;
+      startW  = document.getElementById(`col-${colIdx}`).offsetWidth;
+      dragging = true;
+      handle.classList.add('active');
+      document.body.classList.add('resizing');
+    });
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const w = Math.max(60, startW + (e.clientX - startX));
+    document.getElementById(`col-${colIdx}`).style.width = w + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.querySelectorAll('.resize-handle').forEach(h => h.classList.remove('active'));
+    document.body.classList.remove('resizing');
+    // Bloquer le clic qui suit immédiatement le mouseup de redimensionnement
+    document.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true });
+  });
+})();
+
+render();
+</script>
+</body>
+</html>
